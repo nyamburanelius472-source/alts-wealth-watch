@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Review declaration - ALTS Wealth Watch{% endblock %}
+
+{% block content %}
+<div class="card p-4">
+  <h2>Review declaration {{ decl.declaration_id }}</h2>
+  <p>Official: <strong>{{ official.full_name }}</strong> &nbsp; Period: {{ decl.filing_period }} &nbsp; Submitted: {{ decl.date_submitted }}</p>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="alert alert-warning">{{ messages[0] }}</div>
+    {% endif %}
+  {% endwith %}
+  <hr>
+
+  <p><strong>Annual income:</strong> KES {{ decl.annual_income }}</p>
+
+  <h5>Assets</h5>
+  {% if assets %}
+    <table class="table table-sm">
+      <thead><tr><th>Type</th><th>Description</th><th>Value (KES)</th></tr></thead>
+      <tbody>
+        {% for a in assets %}
+          <tr><td>{{ a.asset_type }}</td><td>{{ a.description }}</td><td>{{ a.self_declared_value }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No assets declared.</p>
+  {% endif %}
+
+  <h5>Liabilities</h5>
+  {% if liabilities %}
+    <table class="table table-sm">
+      <thead><tr><th>Type</th><th>Description</th><th>Amount (KES)</th></tr></thead>
+      <tbody>
+        {% for l in liabilities %}
+          <tr><td>{{ l.liability_type }}</td><td>{{ l.description }}</td><td>{{ l.amount }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No liabilities declared.</p>
+  {% endif %}
+
+  <hr>
+  <form method="post">
+    <div class="mb-3">
+      <label for="comment" class="form-label">Comment (required if you reject)</label>
+      <textarea class="form-control" id="comment" name="comment" rows="3"></textarea>
+    </div>
+    <button type="submit" name="action" value="approve" class="btn btn-primary">Approve</button>
+    <button type="submit" name="action" value="reject" class="btn btn-outline-secondary">Reject / return</button>
+    <button type="submit" name="action" value="escalate" class="btn btn-outline-secondary">Escalate</button>
+    <a href="{{ url_for('review_queue') }}" class="btn btn-link">Back to queue</a>
+  </form>
+</div>
+{% endblock %}

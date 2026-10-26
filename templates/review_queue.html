@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Review queue - ALTS Wealth Watch{% endblock %}
+
+{% block content %}
+<div class="card p-4">
+  <h2>Review queue</h2>
+  <p>Submitted declarations waiting for review.</p>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="alert alert-warning">{{ messages[0] }}</div>
+    {% endif %}
+  {% endwith %}
+
+  {% if rows %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Official</th>
+          <th>Declaration</th>
+          <th>Period</th>
+          <th>Annual income (KES)</th>
+          <th>Submitted</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d, u in rows %}
+          <tr>
+            <td>{{ u.full_name }}</td>
+            <td>{{ d.declaration_id }}</td>
+            <td>{{ d.filing_period }}</td>
+            <td>{{ d.annual_income }}</td>
+            <td>{{ d.date_submitted }}</td>
+            <td><a href="{{ url_for('review_declaration', declaration_id=d.declaration_id) }}">Review</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No submitted declarations waiting.</p>
+  {% endif %}
+</div>
+{% endblock %}

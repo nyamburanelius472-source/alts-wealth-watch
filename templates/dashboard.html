@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ALTS Wealth Watch{% endblock %}
+
+{% block content %}
+<div class="card p-4">
+  <h2>Welcome, {{ session["name"] }}</h2>
+  <p>You are signed in as: {{ session["role"] }}</p>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="alert alert-warning">{{ messages[0] }}</div>
+    {% endif %}
+  {% endwith %}
+
+  <h5>My declarations</h5>
+  {% if declarations %}
+    <ul>
+      {% for d in declarations %}
+                <li>Declaration {{ d.declaration_id }} - {{ d.filing_period }} - {{ d.status }} - income KES {{ d.annual_income }}
+          {% if d.status == 'draft' %}
+            - <a href="{{ url_for('edit_declaration', declaration_id=d.declaration_id) }}">Edit draft</a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No declarations yet.</p>
+  {% endif %}
+
+  <div>
+    <a href="{{ url_for('new_declaration') }}" class="btn btn-primary">New declaration</a>
+    <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary">Log out</a>
+  </div>
+</div>
+{% endblock %}

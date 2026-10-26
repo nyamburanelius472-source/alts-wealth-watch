@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Register officials - ALTS Wealth Watch{% endblock %}
+
+{% block content %}
+<div class="card p-4">
+  <h2>Register officials</h2>
+  <p>Upload a CSV file with the columns: full_name, email, department, position_title, county.</p>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="alert alert-warning text-break">{{ messages[0] }}</div>
+    {% endif %}
+  {% endwith %}
+
+  <form method="post" enctype="multipart/form-data" class="mb-4">
+    <div class="mb-3">
+      <input type="file" class="form-control" name="csv_file" accept=".csv" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Upload and register</button>
+  </form>
+
+  <h5>Registered officials</h5>
+  <table class="table">
+    <thead>
+      <tr><th>Name</th><th>Email</th><th>Department</th><th>Position</th><th>County</th><th>Status</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      {% for o in officials %}
+        <tr>
+          <td>{{ o.full_name }}</td>
+          <td>{{ o.email }}</td>
+          <td>{{ o.department or '' }}</td>
+          <td>{{ o.position_title or '' }}</td>
+          <td>{{ o.county or '' }}</td>
+          <td>{{ o.account_status }}</td>
+          <td>
+            {% if o.account_status == 'invited' %}
+              <form method="post" action="{{ url_for('create_setup_link', user_id=o.user_id) }}">
+                <button type="submit" class="btn btn-sm btn-outline-secondary">Generate setup link</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Declaration - ALTS Wealth Watch{% endblock %}
+
+{% block content %}
+<div class="card p-4">
+  <h2>{{ "Edit draft" if decl else "New declaration" }}</h2>
+  <p>Filing period: 2026 &nbsp;&nbsp; Status: Draft</p>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="alert alert-warning">{{ messages[0] }}</div>
+    {% endif %}
+  {% endwith %}
+  <hr>
+
+  <form method="post">
+    <div class="mb-4">
+      <label for="annual_income" class="form-label fw-bold">Annual income (KES)</label>
+      <input type="number" class="form-control" id="annual_income" name="annual_income"
+             placeholder="Total annual income for the filing period"
+             value="{{ decl.annual_income if decl and decl.annual_income is not none else '' }}">
+    </div>
+
+    <h5>Assets</h5>
+    <div class="row g-2 mb-2">
+      <div class="col-md-3">
+        <select class="form-select" name="asset_type">
+          <option value="">Asset type</option>
+          <option value="land" {% if asset and asset.asset_type == 'land' %}selected{% endif %}>Land</option>
+          <option value="vehicle" {% if asset and asset.asset_type == 'vehicle' %}selected{% endif %}>Vehicle</option>
+          <option value="building" {% if asset and asset.asset_type == 'building' %}selected{% endif %}>Building</option>
+          <option value="other" {% if asset and asset.asset_type == 'other' %}selected{% endif %}>Other</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <input type="text" class="form-control" name="asset_description" placeholder="Description"
+               value="{{ asset.description if asset else '' }}">
+      </div>
+      <div class="col-md-3">
+        <input type="number" class="form-control" name="asset_value" placeholder="Value (KES)"
+               value="{{ asset.self_declared_value if asset and asset.self_declared_value is not none else '' }}">
+      </div>
+    </div>
+    <button type="button" class="btn btn-outline-secondary mb-4">Add another asset</button>
+
+    <h5>Liabilities</h5>
+    <div class="row g-2 mb-2">
+      <div class="col-md-3">
+        <select class="form-select" name="liability_type">
+          <option value="">Type</option>
+          <option value="loan" {% if liability and liability.liability_type == 'loan' %}selected{% endif %}>Loan</option>
+          <option value="mortgage" {% if liability and liability.liability_type == 'mortgage' %}selected{% endif %}>Mortgage</option>
+          <option value="other" {% if liability and liability.liability_type == 'other' %}selected{% endif %}>Other</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <input type="text" class="form-control" name="liability_description" placeholder="Description"
+               value="{{ liability.description if liability else '' }}">
+      </div>
+      <div class="col-md-3">
+        <input type="number" class="form-control" name="liability_amount" placeholder="Amount (KES)"
+               value="{{ liability.amount if liability and liability.amount is not none else '' }}">
+      </div>
+    </div>
+    <button type="button" class="btn btn-outline-secondary mb-4">Add another liability</button>
+
+    <hr>
+    <button type="submit" name="action" value="draft" formnovalidate class="btn btn-outline-secondary mb-3">Save draft</button>
+
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" id="confirm" name="confirm" required>
+      <label class="form-check-label" for="confirm">I declare that the information given is true and complete.</label>
+    </div>
+    <button type="submit" name="action" value="submit" class="btn btn-primary">Submit declaration</button>
+  </form>
+</div>
+{% endblock %}
