@@ -46,3 +46,14 @@ body {
   border-color: #4f59e9;
   box-shadow: 0 0 0 0.25rem rgba(79, 89, 233, 0.25);
 }
+.badge-status {
+  display: inline-block;
+  padding: 0.3em 0.7em;
+  border-radius: 1em;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.badge-high_priority { background: #374151; color: #ffffff; }
+.badge-moderate { background: #dda242; color: #111827; }
+.badge-pass, .badge-none { background: #e5e7eb; color: #111827; }

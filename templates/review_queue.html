@@ -5,7 +5,7 @@
 {% block content %}
 <div class="card p-4">
   <h2>Review queue</h2>
-  <p>Submitted declarations waiting for review.</p>
+  <p>Submitted declarations waiting for review, highest priority first.</p>
 
   {% with messages = get_flashed_messages() %}
     {% if messages %}
@@ -14,9 +14,10 @@
   {% endwith %}
 
   {% if rows %}
-    <table class="table">
+    <table class="table align-middle">
       <thead>
         <tr>
+          <th>Flag</th>
           <th>Official</th>
           <th>Declaration</th>
           <th>Period</th>
@@ -26,8 +27,9 @@
         </tr>
       </thead>
       <tbody>
-        {% for d, u in rows %}
+        {% for d, u, flag in rows %}
           <tr>
+            <td><span class="badge-status badge-{{ flag }}">{{ flag|replace('_', ' ')|capitalize }}</span></td>
             <td>{{ u.full_name }}</td>
             <td>{{ d.declaration_id }}</td>
             <td>{{ d.filing_period }}</td>

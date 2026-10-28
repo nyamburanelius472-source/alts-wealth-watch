@@ -17,12 +17,21 @@
   <p><strong>Annual income:</strong> KES {{ decl.annual_income }}</p>
 
   <h5>Assets</h5>
-  {% if assets %}
-    <table class="table table-sm">
-      <thead><tr><th>Type</th><th>Description</th><th>Value (KES)</th></tr></thead>
+  {% if asset_rows %}
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr><th>Type</th><th>Description</th><th>Declared (KES)</th><th>Estimate, test engine (KES)</th><th>Gap</th><th>Flag</th></tr>
+      </thead>
       <tbody>
-        {% for a in assets %}
-          <tr><td>{{ a.asset_type }}</td><td>{{ a.description }}</td><td>{{ a.self_declared_value }}</td></tr>
+        {% for a, v in asset_rows %}
+          <tr>
+            <td>{{ a.asset_type }}</td>
+            <td>{{ a.description }}</td>
+            <td>{{ a.self_declared_value }}</td>
+            <td>{{ v.ai_estimated_value if v else '-' }}</td>
+            <td>{{ ('%+.2f'|format(v.gap_percentage)) ~ '%' if v else '-' }}</td>
+            <td>{% if v %}<span class="badge-status badge-{{ v.flag_tier }}">{{ v.flag_tier|replace('_', ' ')|capitalize }}</span>{% else %}-{% endif %}</td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>

@@ -78,9 +78,65 @@ class ReviewLog(db.Model):
     date_actioned = db.Column(db.DateTime)
     
     
+class Valuation(db.Model):
+    __tablename__ = "Valuations"
+    valuation_id = db.Column(db.Integer, primary_key=True)
+    asset_id = db.Column(db.Integer, db.ForeignKey("Assets.asset_id"), unique=True, nullable=False)
+    ai_estimated_value = db.Column(db.Numeric(14, 2))
+    gap_percentage = db.Column(db.Numeric(7, 2))
+    flag_tier = db.Column(db.String(20), nullable=False)
+    date_generated = db.Column(db.DateTime)
+    
+    
 def to_decimal(value):
     return Decimal(value) if value else None
 
+
+TYPE_FACTORS = {"land": 1.2, "building": 1.15, "vehicle": 0.9, "other": 1.0}
+
+LOCATION_FACTORS = {
+    "karen": 1.5, "westlands": 1.5, "kilimani": 1.45, "nairobi": 1.35,
+    "kitengela": 1.25, "mombasa": 1.2, "kisumu": 1.15, "nakuru": 1.1,
+    "rural": 0.8, "shamba": 0.8, "village": 0.8,
+}
+
+FLAG_ORDER = {"high_priority": 0, "moderate": 1, "pass": 2}
+
+
+def estimate_value(asset_type, description, declared_value):
+    factor = TYPE_FACTORS.get(asset_type, 1.0)
+    text = (description or "").lower()
+    for word, location_factor in LOCATION_FACTORS.items():
+        if word in text:
+            factor *= location_factor
+            break
+    return (declared_value * Decimal(str(factor))).quantize(Decimal("0.01"))
+
+
+def flag_for_gap(gap):
+    if gap > 60:
+        return "high_priority"
+    if gap >= 25:
+        return "moderate"
+    return "pass"
+
+
+def ensure_valuations(declaration_id):
+    assets = Asset.query.filter_by(declaration_id=declaration_id).all()
+    for a in assets:
+        if a.self_declared_value is None or a.self_declared_value <= 0:
+            continue
+        if Valuation.query.filter_by(asset_id=a.asset_id).first():
+            continue
+        estimate = estimate_value(a.asset_type, a.description, a.self_declared_value)
+        gap = ((estimate - a.self_declared_value) / a.self_declared_value * 100).quantize(Decimal("0.01"))
+        db.session.add(Valuation(
+            asset_id=a.asset_id,
+            ai_estimated_value=estimate,
+            gap_percentage=gap,
+            flag_tier=flag_for_gap(gap),
+            date_generated=datetime.now(),
+        ))
 
 def save_declaration(status, decl=None):
     if decl is None:
@@ -113,6 +169,7 @@ def save_declaration(status, decl=None):
             description=request.form.get("liability_description", ""),
             amount=to_decimal(request.form.get("liability_amount")),
         ))
+    
 
     if status == "submitted":
         db.session.add(DeclarationVersion(
@@ -121,6 +178,7 @@ def save_declaration(status, decl=None):
             date_created=datetime.now(),
             change_notes="Initial submission",
         ))
+        ensure_valuations(decl.declaration_id)
 
     db.session.commit()
 
@@ -216,12 +274,22 @@ def review_queue():
     if "user_id" not in session:
         return redirect(url_for("login"))
     if session.get("role") != "admin":
-        abort(403)   # only admins may open this page
+        abort(403)
     rows = (db.session.query(Declaration, User)
             .join(User, Declaration.user_id == User.user_id)
             .filter(Declaration.status == "submitted")
             .all())
-    return render_template("review_queue.html", rows=rows)
+    items = []
+    for d, u in rows:
+        ensure_valuations(d.declaration_id)
+        flags = [v.flag_tier for v in Valuation.query
+                 .join(Asset, Valuation.asset_id == Asset.asset_id)
+                 .filter(Asset.declaration_id == d.declaration_id).all()]
+        flag = min(flags, key=lambda f: FLAG_ORDER[f]) if flags else "none"
+        items.append((d, u, flag))
+    db.session.commit()
+    items.sort(key=lambda i: FLAG_ORDER.get(i[2], 3))
+    return render_template("review_queue.html", rows=items)
 
 
 @app.route("/admin/review/<int:declaration_id>", methods=["GET", "POST"])
@@ -232,9 +300,12 @@ def review_declaration(declaration_id):
         abort(403)
     decl = db.get_or_404(Declaration, declaration_id)
     if decl.status != "submitted":
-        abort(403)  # already reviewed
+        abort(403)
     official = db.session.get(User, decl.user_id)
+    ensure_valuations(declaration_id)
+    db.session.commit()
     assets = Asset.query.filter_by(declaration_id=declaration_id).all()
+    asset_rows = [(a, Valuation.query.filter_by(asset_id=a.asset_id).first()) for a in assets]
     liabilities = Liability.query.filter_by(declaration_id=declaration_id).all()
 
     if request.method == "POST":
@@ -260,7 +331,7 @@ def review_declaration(declaration_id):
         return redirect(url_for("review_queue"))
 
     return render_template("review_declaration.html", decl=decl, official=official,
-                           assets=assets, liabilities=liabilities)
+                           asset_rows=asset_rows, liabilities=liabilities)
     
     
 @app.route("/admin/officials", methods=["GET", "POST"])
