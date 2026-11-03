@@ -414,6 +414,47 @@ def upload_officials():
 
     officials = User.query.filter_by(role="official").all()
     return render_template("upload_officials.html", officials=officials)
+
+
+@app.route("/admin/officials/add", methods=["POST"])
+def add_official():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    if session.get("role") != "admin":
+        abort(403)
+
+    name = request.form.get("full_name", "").strip()
+    email = request.form.get("email", "").strip().lower()
+    department = request.form.get("department", "").strip()
+    position = request.form.get("position_title", "").strip()
+    county = request.form.get("county", "").strip()
+
+    if not name or not email:
+        flash("Full name and email are required.")
+        return redirect(url_for("upload_officials"))
+    if "@" not in email or "." not in email.split("@")[-1]:
+        flash("Enter a valid email address.")
+        return redirect(url_for("upload_officials"))
+    if (len(name) > 150 or len(email) > 100 or len(department) > 100
+            or len(position) > 100 or len(county) > 50):
+        flash("One of the fields is too long.")
+        return redirect(url_for("upload_officials"))
+    if User.query.filter_by(email=email).first():
+        flash("An official with that email already exists.")
+        return redirect(url_for("upload_officials"))
+
+    db.session.add(User(
+        full_name=name,
+        email=email,
+        role="official",
+        account_status="invited",
+        department=department,
+        position_title=position,
+        county=county,
+    ))
+    db.session.commit()
+    flash(f"{name} registered. Generate a setup link in the table below.")
+    return redirect(url_for("upload_officials"))
     
    
 @app.route("/admin/officials/<int:user_id>/link", methods=["POST"])

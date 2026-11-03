@@ -5,7 +5,6 @@
 {% block content %}
 <div class="card p-4">
   <h2>Register officials</h2>
-  <p>Upload a CSV file with the columns: full_name, email, department, position_title, county.</p>
 
   {% with messages = get_flashed_messages() %}
     {% if messages %}
@@ -13,6 +12,30 @@
     {% endif %}
   {% endwith %}
 
+  <h5>Register one official</h5>
+  <form method="post" action="{{ url_for('add_official') }}" class="row g-2 mb-4">
+    <div class="col-md-6">
+      <input type="text" class="form-control" name="full_name" placeholder="Full name" maxlength="150" required>
+    </div>
+    <div class="col-md-6">
+      <input type="email" class="form-control" name="email" placeholder="Official email" maxlength="100" autocomplete="off" required>
+    </div>
+    <div class="col-md-4">
+      <input type="text" class="form-control" name="department" placeholder="Department" maxlength="100">
+    </div>
+    <div class="col-md-4">
+      <input type="text" class="form-control" name="position_title" placeholder="Position" maxlength="100">
+    </div>
+    <div class="col-md-4">
+      <input type="text" class="form-control" name="county" placeholder="County" maxlength="50">
+    </div>
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary">Register official</button>
+    </div>
+  </form>
+
+  <h5>Register in bulk (CSV)</h5>
+  <p>Upload a CSV file with the columns: full_name, email, department, position_title, county.</p>
   <form method="post" enctype="multipart/form-data" class="mb-4">
     <div class="mb-3">
       <input type="file" class="form-control" name="csv_file" accept=".csv" required>
