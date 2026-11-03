@@ -17,7 +17,7 @@
   <form method="post">
     <div class="mb-4">
       <label for="annual_income" class="form-label fw-bold">Annual income (KES)</label>
-      <input type="number" class="form-control" id="annual_income" name="annual_income"
+      <input type="number" min="0" step="0.01" class="form-control" id="annual_income" name="annual_income"
              placeholder="Total annual income for the filing period"
              value="{{ decl.annual_income if decl and decl.annual_income is not none else '' }}">
     </div>
@@ -34,11 +34,10 @@
         </select>
       </div>
       <div class="col-md-6">
-        <input type="text" class="form-control" name="asset_description" placeholder="Description"
-               value="{{ asset.description if asset else '' }}">
+        <textarea class="form-control" name="asset_description" rows="3" placeholder="Description">{{ asset.description if asset else '' }}</textarea>
       </div>
       <div class="col-md-3">
-        <input type="number" class="form-control" name="asset_value" placeholder="Value (KES)"
+        <input type="number" min="0" step="0.01" class="form-control" name="asset_value" placeholder="Value (KES)"
                value="{{ asset.self_declared_value if asset and asset.self_declared_value is not none else '' }}">
       </div>
     </div>
@@ -55,11 +54,10 @@
         </select>
       </div>
       <div class="col-md-6">
-        <input type="text" class="form-control" name="liability_description" placeholder="Description"
-               value="{{ liability.description if liability else '' }}">
+        <textarea class="form-control" name="liability_description" rows="3" placeholder="Description">{{ liability.description if liability else '' }}</textarea>
       </div>
       <div class="col-md-3">
-        <input type="number" class="form-control" name="liability_amount" placeholder="Amount (KES)"
+        <input type="number" min="0" step="0.01" class="form-control" name="liability_amount" placeholder="Amount (KES)"
                value="{{ liability.amount if liability and liability.amount is not none else '' }}">
       </div>
     </div>

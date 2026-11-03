@@ -2,7 +2,7 @@ import csv
 import io
 import secrets
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -90,6 +90,30 @@ class Valuation(db.Model):
     
 def to_decimal(value):
     return Decimal(value) if value else None
+
+def amount_error():
+    limits = {
+        "annual_income": ("Annual income", Decimal("9999999999.99"), True),
+        "asset_value": ("Asset value", Decimal("999999999999.99"), False),
+        "liability_amount": ("Liability amount", Decimal("999999999999.99"), False),
+    }
+    for name, (label, maximum, allow_zero) in limits.items():
+        raw = (request.form.get(name) or "").strip()
+        if not raw:
+            continue
+        try:
+            amount = Decimal(raw)
+        except InvalidOperation:
+            return f"{label} must be a number."
+        if not amount.is_finite():
+            return f"{label} must be a number."
+        if amount < 0:
+            return f"{label} cannot be negative."
+        if amount == 0 and not allow_zero:
+            return f"{label} must be greater than zero."
+        if amount > maximum:
+            return f"{label} is too large."
+    return None
 
 
 TYPE_FACTORS = {"land": 1.2, "building": 1.15, "vehicle": 0.9, "other": 1.0}
@@ -187,6 +211,12 @@ def declaration_form(decl):
     """Shows the form and handles Save draft / Submit, for a new or an existing draft."""
     if request.method == "POST":
         action = request.form.get("action")
+    
+    
+        error = amount_error()
+        if error:
+            flash(error)
+            return redirect(request.url)
 
         if action == "draft":
             save_declaration("draft", decl)
