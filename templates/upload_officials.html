@@ -60,7 +60,7 @@
           <td>
             {% if o.account_status == 'invited' %}
               <form method="post" action="{{ url_for('create_setup_link', user_id=o.user_id) }}">
-                <button type="submit" class="btn btn-sm btn-outline-secondary">Generate setup link</button>
+                <button type="submit" class="btn btn-sm btn-outline-secondary">Send setup email</button>
               </form>
             {% endif %}
           </td>

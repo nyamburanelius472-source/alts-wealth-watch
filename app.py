@@ -1,16 +1,24 @@
 import csv
 import io
 import secrets
+import os
+import smtplib
+from email.message import EmailMessage
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash, generate_password_hash
 
+load_dotenv()
+
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@127.0.0.1/alts_wealth_watch"
 app.config["SECRET_KEY"] = "dev-key-change-later"
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
+MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
+MAIL_PASSWORD = (os.environ.get("MAIL_PASSWORD") or "").replace(" ", "")
 db = SQLAlchemy(app)
 
 
@@ -90,6 +98,27 @@ class Valuation(db.Model):
     
 def to_decimal(value):
     return Decimal(value) if value else None
+
+
+def send_email(to_address, subject, body):
+    if not MAIL_USERNAME or not MAIL_PASSWORD:
+        print("Email failed: mail settings are missing")
+        return False
+    message = EmailMessage()
+    message["From"] = f"ALTS Wealth Watch <{MAIL_USERNAME}>"
+    message["To"] = to_address
+    message["Subject"] = subject
+    message.set_content(body)
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as server:
+            server.starttls()
+            server.login(MAIL_USERNAME, MAIL_PASSWORD)
+            server.send_message(message)
+    except (smtplib.SMTPException, OSError) as exc:
+        print(f"Email failed: {exc}")
+        return False
+    return True
+
 
 def amount_error():
     limits = {
@@ -470,7 +499,17 @@ def create_setup_link(user_id):
     official.reset_token_expiry = datetime.now() + timedelta(hours=24)
     db.session.commit()
     link = url_for("set_password", token=official.reset_token, _external=True)
-    flash(f"Setup link for {official.full_name} (valid 24 hours): {link}")
+    body = (
+        f"Hello {official.full_name},\n\n"
+        "An account has been created for you on ALTS Wealth Watch.\n"
+        "Use this link to set your password. It works once and expires in 24 hours:\n"
+        f"{link}\n\n"
+        "If you were not expecting this email, please ignore it.\n"
+    )
+    if send_email(official.email, "Set up your ALTS Wealth Watch account", body):
+        flash(f"Setup email sent to {official.email}.")
+    else:
+        flash("The email could not be sent. Check the mail settings and try again.")
     return redirect(url_for("upload_officials"))
 
 
