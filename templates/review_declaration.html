@@ -20,13 +20,22 @@
   {% if asset_rows %}
     <table class="table table-sm align-middle">
       <thead>
-        <tr><th>Type</th><th>Description</th><th>Declared (KES)</th><th>Estimate, test engine (KES)</th><th>Gap</th><th>Flag</th></tr>
+        <tr><th>Type</th><th>Details</th><th>Declared (KES)</th><th>Estimate, test engine (KES)</th><th>Gap</th><th>Flag</th></tr>
       </thead>
       <tbody>
         {% for a, v in asset_rows %}
           <tr>
             <td>{{ a.asset_type }}</td>
-            <td>{{ a.description }}</td>
+            <td>
+              {% if a.asset_type == 'land' %}
+                {{ a.county or '' }}, {{ a.size_value or '' }} {{ a.size_unit or '' }}, {{ a.land_use or '' }}{% if a.title_number %}, title {{ a.title_number }}{% endif %}
+              {% elif a.asset_type == 'vehicle' %}
+                {{ a.make or '' }} {{ a.model or '' }} {{ a.year_of_manufacture or '' }}{% if a.registration_number %}, reg {{ a.registration_number }}{% endif %}
+              {% elif a.asset_type == 'shares' %}
+                {{ a.company or '' }}, {{ a.quantity or '' }} shares
+              {% endif %}
+              <div class="text-muted">{{ a.description }}</div>
+            </td>
             <td>{{ a.self_declared_value }}</td>
             <td>{{ v.ai_estimated_value if v else '-' }}</td>
             <td>{{ ('%+.2f'|format(v.gap_percentage)) ~ '%' if v else '-' }}</td>

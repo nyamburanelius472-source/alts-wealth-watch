@@ -56,6 +56,17 @@ class Asset(db.Model):
     asset_type = db.Column(db.String(20), nullable=False)
     description = db.Column(db.Text, nullable=False)
     self_declared_value = db.Column(db.Numeric(14, 2))
+    county = db.Column(db.String(50))
+    size_value = db.Column(db.Numeric(12, 2))
+    size_unit = db.Column(db.String(10))
+    land_use = db.Column(db.String(20))
+    title_number = db.Column(db.String(100))
+    make = db.Column(db.String(50))
+    model = db.Column(db.String(50))
+    year_of_manufacture = db.Column(db.Integer)
+    registration_number = db.Column(db.String(20))
+    company = db.Column(db.String(100))
+    quantity = db.Column(db.BigInteger)
 
 
 class Liability(db.Model):
@@ -145,6 +156,102 @@ def amount_error():
     return None
 
 
+COUNTIES = [
+    "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo-Marakwet", "Embu", "Garissa",
+    "Homa Bay", "Isiolo", "Kajiado", "Kakamega", "Kericho", "Kiambu", "Kilifi",
+    "Kirinyaga", "Kisii", "Kisumu", "Kitui", "Kwale", "Laikipia", "Lamu", "Machakos",
+    "Makueni", "Mandera", "Marsabit", "Meru", "Migori", "Mombasa", "Murang'a",
+    "Nairobi", "Nakuru", "Nandi", "Narok", "Nyamira", "Nyandarua", "Nyeri", "Samburu",
+    "Siaya", "Taita-Taveta", "Tana River", "Tharaka-Nithi", "Trans-Nzoia", "Turkana",
+    "Uasin Gishu", "Vihiga", "Wajir", "West Pokot",
+]
+LAND_USES = ("residential", "agricultural", "commercial")
+ASSET_TYPES = ("land", "vehicle", "shares", "other")
+DETAIL_LIMITS = {"title_number": 100, "make": 50, "model": 50, "registration_number": 20, "company": 100}
+
+
+def clean(value, limit):
+    value = (value or "").strip()
+    return value[:limit] or None
+
+
+def to_int(value):
+    value = (value or "").strip()
+    return int(value) if value else None
+
+
+def asset_detail_error(require):
+    form = request.form
+    asset_type = form.get("asset_type")
+    if not asset_type:
+        return None
+    if asset_type not in ASSET_TYPES:
+        return "Choose a valid asset type."
+    required = {
+        "land": ["county", "size_value", "size_unit", "land_use"],
+        "vehicle": ["make", "model", "year_of_manufacture"],
+        "shares": ["company", "quantity"],
+    }
+    if require:
+        for name in required.get(asset_type, []):
+            if not (form.get(name) or "").strip():
+                return "Please fill in all the details for the selected asset type."
+    if asset_type == "land":
+        if form.get("county") and form.get("county") not in COUNTIES:
+            return "Choose a valid county."
+        if form.get("size_unit") and form.get("size_unit") not in ("acres", "hectares"):
+            return "Choose a valid size unit."
+        if form.get("land_use") and form.get("land_use") not in LAND_USES:
+            return "Choose a valid land use."
+        raw = (form.get("size_value") or "").strip()
+        if raw:
+            try:
+                size = Decimal(raw)
+            except InvalidOperation:
+                return "Size must be a number."
+            if not size.is_finite() or size <= 0 or size > Decimal("1000000"):
+                return "Size must be greater than zero and realistic."
+    if asset_type == "vehicle":
+        raw = (form.get("year_of_manufacture") or "").strip()
+        if raw:
+            if not (raw.isascii() and raw.isdigit()) or not 1950 <= int(raw) <= datetime.now().year + 1:
+                return "Enter a valid year of manufacture."
+    if asset_type == "shares":
+        raw = (form.get("quantity") or "").strip()
+        if raw:
+            if not (raw.isascii() and raw.isdigit()) or not 0 < int(raw) <= 10 ** 12:
+                return "Number of shares must be a whole number greater than zero."
+    for name, limit in DETAIL_LIMITS.items():
+        if len((form.get(name) or "").strip()) > limit:
+            return "One of the details is too long."
+    return None
+
+
+def asset_details(asset_type):
+    form = request.form
+    if asset_type == "land":
+        return {
+            "county": clean(form.get("county"), 50),
+            "size_value": to_decimal(form.get("size_value")),
+            "size_unit": form.get("size_unit") or None,
+            "land_use": form.get("land_use") or None,
+            "title_number": clean(form.get("title_number"), 100),
+        }
+    if asset_type == "vehicle":
+        return {
+            "make": clean(form.get("make"), 50),
+            "model": clean(form.get("model"), 50),
+            "year_of_manufacture": to_int(form.get("year_of_manufacture")),
+            "registration_number": clean((form.get("registration_number") or "").upper(), 20),
+        }
+    if asset_type == "shares":
+        return {
+            "company": clean(form.get("company"), 100),
+            "quantity": to_int(form.get("quantity")),
+        }
+    return {}
+
+
 TYPE_FACTORS = {"land": 1.2, "building": 1.15, "vehicle": 0.9, "other": 1.0}
 
 LOCATION_FACTORS = {
@@ -208,12 +315,15 @@ def save_declaration(status, decl=None):
     Liability.query.filter_by(declaration_id=decl.declaration_id).delete()
 
     if request.form.get("asset_type"):
-        db.session.add(Asset(
+            asset_type = request.form["asset_type"]
+    db.session.add(Asset(
             declaration_id=decl.declaration_id,
-            asset_type=request.form["asset_type"],
+            asset_type=asset_type,
             description=request.form.get("asset_description", ""),
             self_declared_value=to_decimal(request.form.get("asset_value")),
+            **asset_details(asset_type),
         ))
+
 
     if request.form.get("liability_type"):
         db.session.add(Liability(
@@ -242,7 +352,7 @@ def declaration_form(decl):
         action = request.form.get("action")
     
     
-        error = amount_error()
+        error = amount_error() or asset_detail_error(action == "submit")
         if error:
             flash(error)
             return redirect(request.url)
@@ -267,7 +377,7 @@ def declaration_form(decl):
     if decl:
         asset = Asset.query.filter_by(declaration_id=decl.declaration_id).first()
         liability = Liability.query.filter_by(declaration_id=decl.declaration_id).first()
-    return render_template("new_declaration.html", decl=decl, asset=asset, liability=liability)
+    return render_template("new_declaration.html", decl=decl, asset=asset, liability=liability, counties=COUNTIES)
 
 
 @app.route("/")

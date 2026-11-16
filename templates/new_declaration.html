@@ -25,7 +25,7 @@
     <h5>Assets</h5>
     <div class="row g-2 mb-2">
       <div class="col-md-3">
-        <select class="form-select" name="asset_type">
+        <select class="form-select" id="asset_type" name="asset_type">
           <option value="">Asset type</option>
           <option value="land" {% if asset and asset.asset_type == 'land' %}selected{% endif %}>Land</option>
           <option value="vehicle" {% if asset and asset.asset_type == 'vehicle' %}selected{% endif %}>Vehicle</option>
@@ -34,13 +34,78 @@
         </select>
       </div>
       <div class="col-md-6">
-        <textarea class="form-control" name="asset_description" rows="3" placeholder="Description">{{ asset.description if asset else '' }}</textarea>
+        <textarea class="form-control" name="asset_description" rows="3" placeholder="Description (any extra detail)">{{ asset.description if asset else '' }}</textarea>
       </div>
       <div class="col-md-3">
-        <input type="number" min="0" step="0.01" class="form-control" name="asset_value" placeholder="Value (KES)"
+        <input type="number" min="0" step="0.01" class="form-control" name="asset_value" placeholder="Declared value (KES)"
                value="{{ asset.self_declared_value if asset and asset.self_declared_value is not none else '' }}">
       </div>
     </div>
+
+    <div id="fields-land" class="row g-2 mb-2 d-none">
+      <div class="col-md-3">
+        <select class="form-select" name="county">
+          <option value="">County</option>
+          {% for c in counties %}
+            <option value="{{ c }}" {% if asset and asset.county == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <input type="number" min="0" step="0.01" class="form-control" name="size_value" placeholder="Size"
+               value="{{ asset.size_value if asset and asset.size_value is not none else '' }}">
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" name="size_unit">
+          <option value="">Unit</option>
+          <option value="acres" {% if asset and asset.size_unit == 'acres' %}selected{% endif %}>Acres</option>
+          <option value="hectares" {% if asset and asset.size_unit == 'hectares' %}selected{% endif %}>Hectares</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" name="land_use">
+          <option value="">Land use</option>
+          <option value="residential" {% if asset and asset.land_use == 'residential' %}selected{% endif %}>Residential</option>
+          <option value="agricultural" {% if asset and asset.land_use == 'agricultural' %}selected{% endif %}>Agricultural</option>
+          <option value="commercial" {% if asset and asset.land_use == 'commercial' %}selected{% endif %}>Commercial</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <input type="text" maxlength="100" class="form-control" name="title_number" placeholder="Title deed number"
+               value="{{ asset.title_number if asset and asset.title_number else '' }}">
+      </div>
+    </div>
+
+    <div id="fields-vehicle" class="row g-2 mb-2 d-none">
+      <div class="col-md-3">
+        <input type="text" maxlength="50" class="form-control" name="make" placeholder="Make"
+               value="{{ asset.make if asset and asset.make else '' }}">
+      </div>
+      <div class="col-md-3">
+        <input type="text" maxlength="50" class="form-control" name="model" placeholder="Model"
+               value="{{ asset.model if asset and asset.model else '' }}">
+      </div>
+      <div class="col-md-3">
+        <input type="number" min="1950" max="2100" step="1" class="form-control" name="year_of_manufacture" placeholder="Year of manufacture"
+               value="{{ asset.year_of_manufacture if asset and asset.year_of_manufacture else '' }}">
+      </div>
+      <div class="col-md-3">
+        <input type="text" maxlength="20" class="form-control" name="registration_number" placeholder="Registration number"
+               value="{{ asset.registration_number if asset and asset.registration_number else '' }}">
+      </div>
+    </div>
+
+    <div id="fields-shares" class="row g-2 mb-2 d-none">
+      <div class="col-md-8">
+        <input type="text" maxlength="100" class="form-control" name="company" placeholder="Company"
+               value="{{ asset.company if asset and asset.company else '' }}">
+      </div>
+      <div class="col-md-4">
+        <input type="number" min="1" step="1" class="form-control" name="quantity" placeholder="Number of shares"
+               value="{{ asset.quantity if asset and asset.quantity else '' }}">
+      </div>
+    </div>
+
     <button type="button" class="btn btn-outline-secondary mb-4">Add another asset</button>
 
     <h5>Liabilities</h5>
@@ -73,4 +138,26 @@
     <button type="submit" name="action" value="submit" class="btn btn-primary">Submit declaration</button>
   </form>
 </div>
+
+<script>
+  (function () {
+    var select = document.getElementById("asset_type");
+    var groups = {
+      land: document.getElementById("fields-land"),
+      vehicle: document.getElementById("fields-vehicle"),
+      shares: document.getElementById("fields-shares")
+    };
+    function update() {
+      Object.keys(groups).forEach(function (key) {
+        var show = select.value === key;
+        groups[key].classList.toggle("d-none", !show);
+        groups[key].querySelectorAll("input, select").forEach(function (el) {
+          el.disabled = !show;
+        });
+      });
+    }
+    select.addEventListener("change", update);
+    update();
+  })();
+</script>
 {% endblock %}
