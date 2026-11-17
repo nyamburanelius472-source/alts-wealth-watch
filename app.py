@@ -187,6 +187,10 @@ def asset_detail_error(require):
         return None
     if asset_type not in ASSET_TYPES:
         return "Choose a valid asset type."
+    if require and not (form.get("asset_value") or "").strip():
+        return "Enter the declared value of the asset."
+    if require and asset_type == "other" and not (form.get("asset_description") or "").strip():
+        return "Describe the asset."
     required = {
         "land": ["county", "size_value", "size_unit", "land_use"],
         "vehicle": ["make", "model", "year_of_manufacture"],

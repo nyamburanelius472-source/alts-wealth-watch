@@ -34,7 +34,7 @@
         </select>
       </div>
       <div class="col-md-6">
-        <textarea class="form-control" name="asset_description" rows="3" placeholder="Description (any extra detail)">{{ asset.description if asset else '' }}</textarea>
+        <textarea class="form-control" name="asset_description" rows="3" placeholder="Additional details (optional)">{{ asset.description if asset else '' }}</textarea>
       </div>
       <div class="col-md-3">
         <input type="number" min="0" step="0.01" class="form-control" name="asset_value" placeholder="Declared value (KES)"
